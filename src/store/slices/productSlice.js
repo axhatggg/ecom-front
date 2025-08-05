@@ -8,7 +8,7 @@ export const fetchProducts = createAsyncThunk(
   'products/fetchProducts',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/get-products`);
+      const response = await axios.get(`${API_BASE_URL}/products`);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch products');
@@ -21,17 +21,49 @@ export const addProduct = createAsyncThunk(
   async (productData, { rejectWithValue, getState }) => {
     try {
       const accessToken = getState().auth.accessToken || localStorage.getItem('accessToken');
+      
+      // Create FormData for the product
+      const formData = new FormData();
+      
+      // Add text fields
+      formData.append('name', productData.name);
+      formData.append('description', productData.description);
+      formData.append('price', productData.price);
+      formData.append('count', productData.count);
+      formData.append('category', productData.category);
+      formData.append('color', productData.color);
+      formData.append('brand', productData.brand);
+      
+      // Add images if provided
+      if (productData.images && productData.images.length > 0) {
+        productData.images.forEach((image, index) => {
+          formData.append('images', image);
+        });
+      }
+      
       const config = {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${accessToken}`
         }
       };
       
-      const response = await axios.post(`${API_BASE_URL}/add-product`, productData, config);
+      console.log('Adding product with data:', {
+        name: productData.name,
+        description: productData.description,
+        price: productData.price,
+        count: productData.count,
+        category: productData.category,
+        color: productData.color,
+        brand: productData.brand,
+        imagesCount: productData.images ? productData.images.length : 0
+      });
+      
+      const response = await axios.post(`${API_BASE_URL}/products/add`, formData, config);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to add product');
+      console.error('Add product error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || error.message || 'Failed to add product');
     }
   }
 );
@@ -48,6 +80,36 @@ export const fetchProductById = createAsyncThunk(
   }
 );
 
+export const fetchProductsWithFilters = createAsyncThunk(
+  'products/fetchProductsWithFilters',
+  async (filters = {}, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      
+      // Add pagination parameters
+      if (filters.page) params.append('page', filters.page);
+      if (filters.limit) params.append('limit', filters.limit);
+      
+      // Add sorting parameters
+      if (filters.sortBy) params.append('sortBy', filters.sortBy);
+      if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+      
+      // Add filtering parameters
+      if (filters.category) params.append('category', filters.category);
+      if (filters.brand) params.append('brand', filters.brand);
+      if (filters.minPrice) params.append('minPrice', filters.minPrice);
+      if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+      if (filters.search) params.append('search', filters.search);
+      
+      const url = `${API_BASE_URL}/products${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await axios.get(url);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch products');
+    }
+  }
+);
+
 const productSlice = createSlice({
   name: 'products',
   initialState: {
@@ -57,6 +119,18 @@ const productSlice = createSlice({
     error: null,
     addProductLoading: false,
     addProductError: null,
+    pagination: {
+      currentPage: 1,
+      totalPages: 1,
+      totalProducts: 0,
+      hasNextPage: false,
+      hasPrevPage: false,
+      limit: 10
+    },
+    filters: {
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
+    }
   },
   reducers: {
     clearError: (state) => {
@@ -76,7 +150,15 @@ const productSlice = createSlice({
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.products = action.payload.products || action.payload.data || action.payload;
+        // Handle the nested response structure
+        if (action.payload.data && action.payload.data.products) {
+          state.products = action.payload.data.products;
+          state.pagination = action.payload.data.pagination || state.pagination;
+          state.filters = action.payload.data.filters || state.filters;
+        } else {
+          // Fallback for different response structures
+          state.products = action.payload.products || action.payload.data || action.payload;
+        }
         state.error = null;
       })
       .addCase(fetchProducts.rejected, (state, action) => {
@@ -108,6 +190,28 @@ const productSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchProductById.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Fetch products with filters cases
+      .addCase(fetchProductsWithFilters.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchProductsWithFilters.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // Handle the nested response structure
+        if (action.payload.data && action.payload.data.products) {
+          state.products = action.payload.data.products;
+          state.pagination = action.payload.data.pagination || state.pagination;
+          state.filters = action.payload.data.filters || state.filters;
+        } else {
+          // Fallback for different response structures
+          state.products = action.payload.products || action.payload.data || action.payload;
+        }
+        state.error = null;
+      })
+      .addCase(fetchProductsWithFilters.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });

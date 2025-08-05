@@ -38,7 +38,7 @@ const Navbar = () => {
       <div className="nav-container">
         <div className="nav-left">
           <Link to="/" className="nav-logo">
-            ECommerce Store
+            Scom
           </Link>
         </div>
 

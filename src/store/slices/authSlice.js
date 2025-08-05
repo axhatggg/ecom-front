@@ -3,6 +3,16 @@ import axios from 'axios';
 
 const API_BASE_URL = 'https://search-optimizer.onrender.com/api/v1';
 
+// Add a simple test to check if the API is reachable
+const testAPI = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/health`);
+    console.log('API health check:', response.data);
+  } catch (error) {
+    console.log('API health check failed:', error.message);
+  }
+};
+
 // Async thunks for API calls
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
@@ -30,24 +40,44 @@ export const loginUser = createAsyncThunk(
 
 export const registerUser = createAsyncThunk(
   'auth/registerUser',
-  async ({ fullName, email, password, username, role = 'customer' }, { rejectWithValue }) => {
+  async ({ fullName, email, password, username, role = 'customer', avatar = null }, { rejectWithValue }) => {
     try {
-      const formData = new FormData();
-      formData.append('fullName', fullName);
-      formData.append('email', email);
-      formData.append('password', password);
-      formData.append('username', username);
-      
-      // Add role if your backend supports it
-      if (role) {
+      let payload;
+      let headers = {};
+
+      if (avatar) {
+        // If avatar is provided, use FormData
+        const formData = new FormData();
+        formData.append('fullName', fullName);
+        formData.append('email', email);
+        formData.append('password', password);
+        formData.append('username', username);
         formData.append('role', role);
+        formData.append('avatar', avatar);
+        
+        payload = formData;
+        headers = {
+          'Content-Type': 'multipart/form-data',
+        };
+      } else {
+        // If no avatar, use JSON
+        payload = {
+          fullName,
+          email,
+          password,
+          username,
+          role
+        };
+        headers = {
+          'Content-Type': 'application/json',
+        };
       }
 
-      const response = await axios.post(`${API_BASE_URL}/users/register`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      console.log('Registration payload:', payload);
+
+      const response = await axios.post(`${API_BASE_URL}/users/register`, payload, { headers });
+      
+      console.log('Registration response:', response.data);
       
       // Store tokens if they exist in response
       if (response.data.data?.accessToken) {
@@ -59,7 +89,8 @@ export const registerUser = createAsyncThunk(
       
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Registration failed');
+      console.error('Registration error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data?.message || error.message || 'Registration failed');
     }
   }
 );

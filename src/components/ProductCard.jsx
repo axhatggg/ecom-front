@@ -34,27 +34,44 @@ const ProductCard = ({ product, isSearchResult = false }) => {
   // Calculate discounted price if discount is available
   const discountedPrice = productDiscount ? productPrice - (productPrice * productDiscount / 100) : productPrice;
 
-  // Get appropriate image - use provided image or fallback to category/brand image
-  const displayImage = productImage || 
+  // Get product images from photo_links if available
+  const productPhotoLinks = Array.isArray(product.photo_links)
+    ? product.photo_links.filter(Boolean)
+    : [];
+
+  // Get appropriate fallback image
+  const fallbackImage = productImage || 
     (productBrand ? getBrandImage(productBrand, productCategory) : getCategoryImage(productCategory, productName, productBrand));
 
   return (
     <div className="product-card">
       <div className="product-image">
-        <img 
-          src={displayImage} 
-          alt={productName}
-          onError={(e) => {
-            // Fallback to default image if category image fails to load
-            e.target.src = getCategoryImage('default');
-          }}
-        />
+        {productPhotoLinks.length > 0 ? (
+          <div className="product-image-gallery" style={{ display: 'flex', gap: '6px', overflowX: 'auto' }}>
+            {productPhotoLinks.map((imgUrl, idx) => (
+              <img
+                key={imgUrl + idx}
+                src={imgUrl}
+                alt={productName + ' photo ' + (idx + 1)}
+                style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px' }}
+                onError={e => { e.target.src = getCategoryImage('default'); }}
+              />
+            ))}
+          </div>
+        ) : (
+          <img
+            src={fallbackImage}
+            alt={productName}
+            onError={e => { e.target.src = getCategoryImage('default'); }}
+            style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '6px' }}
+          />
+        )}
         {productDiscount && (
           <div className="discount-badge">
             -{productDiscount}%
           </div>
         )}
-        {!productImage && (
+        {(!productImage && productPhotoLinks.length === 0) && (
           <div className="category-overlay">
             {productBrand && <div className="brand-overlay">{productBrand}</div>}
             {productCategory && <div className="category-overlay-text">{productCategory}</div>}

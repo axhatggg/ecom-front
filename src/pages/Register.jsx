@@ -10,7 +10,8 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'customer'
+    role: 'customer',
+    avatar: null
   });
 
   const dispatch = useDispatch();
@@ -29,10 +30,17 @@ const Register = () => {
   }, [dispatch]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    if (e.target.name === 'avatar') {
+      setFormData({
+        ...formData,
+        avatar: e.target.files[0]
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [e.target.name]: e.target.value
+      });
+    }
   };
 
   const handleSubmit = (e) => {
@@ -44,6 +52,7 @@ const Register = () => {
     }
 
     const { confirmPassword, ...submitData } = formData;
+    console.log('Submitting registration data:', submitData);
     dispatch(registerUser(submitData));
   };
 
@@ -138,6 +147,18 @@ const Register = () => {
                 <option value="customer">Customer</option>
                 <option value="admin">Admin</option>
               </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="avatar">Profile Picture (Optional)</label>
+              <input
+                type="file"
+                id="avatar"
+                name="avatar"
+                accept="image/*"
+                onChange={handleChange}
+                className="file-input"
+              />
             </div>
 
             <button 

@@ -8,9 +8,11 @@ const AddProduct = () => {
     name: '',
     description: '',
     price: '',
+    count: '',
     category: '',
-    image: '',
-    stock: ''
+    color: '',
+    brand: '',
+    images: []
   });
 
   const dispatch = useDispatch();
@@ -18,10 +20,17 @@ const AddProduct = () => {
   const { addProductLoading, addProductError } = useSelector(state => state.products);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    if (e.target.name === 'images') {
+      setFormData({
+        ...formData,
+        images: Array.from(e.target.files)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [e.target.name]: e.target.value
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -30,8 +39,10 @@ const AddProduct = () => {
     const productData = {
       ...formData,
       price: parseFloat(formData.price),
-      stock: parseInt(formData.stock)
+      count: parseInt(formData.count)
     };
+
+    console.log('Submitting product data:', productData);
 
     try {
       await dispatch(addProduct(productData)).unwrap();
@@ -98,12 +109,12 @@ const AddProduct = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="stock">Stock Quantity</label>
+                <label htmlFor="count">Count/Stock</label>
                 <input
                   type="number"
-                  id="stock"
-                  name="stock"
-                  value={formData.stock}
+                  id="count"
+                  name="count"
+                  value={formData.count}
                   onChange={handleChange}
                   required
                   placeholder="0"
@@ -112,29 +123,59 @@ const AddProduct = () => {
               </div>
             </div>
 
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="category">Category</label>
+                <input
+                  type="text"
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter product category"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="color">Color</label>
+                <input
+                  type="text"
+                  id="color"
+                  name="color"
+                  value={formData.color}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter product color"
+                />
+              </div>
+            </div>
+
             <div className="form-group">
-              <label htmlFor="category">Category</label>
+              <label htmlFor="brand">Brand</label>
               <input
                 type="text"
-                id="category"
-                name="category"
-                value={formData.category}
+                id="brand"
+                name="brand"
+                value={formData.brand}
                 onChange={handleChange}
                 required
-                placeholder="Enter product category"
+                placeholder="Enter product brand"
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="image">Image URL</label>
+              <label htmlFor="images">Product Images</label>
               <input
-                type="url"
-                id="image"
-                name="image"
-                value={formData.image}
+                type="file"
+                id="images"
+                name="images"
                 onChange={handleChange}
-                placeholder="Enter image URL (optional)"
+                accept="image/*"
+                multiple
+                className="file-input"
               />
+              <small>You can select multiple images</small>
             </div>
 
             <div className="form-actions">
